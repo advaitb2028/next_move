@@ -133,7 +133,7 @@ def analyze():
 
     fen += f"{move_count} {half_move_count}"
 
-    engine = chess.engine.SimpleEngine.popen_uci("/usr/bin/stockfish")
+    engine = chess.engine.SimpleEngine.popen_uci("./stockfish-ubuntu-x86-64-avx2/stockfish")
     board = chess.Board(fen)
 
     info = engine.analyse(board, chess.engine.Limit(time=0.1))

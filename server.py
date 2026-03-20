@@ -147,4 +147,4 @@ def analyze():
 
     return jsonify({"best_move": f"{board.san(best_move)}"})
 
-app.run()
+app.run(host = '0.0.0.0')

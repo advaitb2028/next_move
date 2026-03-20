@@ -1,0 +1,9 @@
+flask                                                                                                                                
+chess                                                                                                                                
+huggingface-hub
+numpy                                                                                                                                
+opencv-python
+pillow
+scikit-learn
+torch
+torchvision

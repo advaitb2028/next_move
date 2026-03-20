@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Next Move - Chess Analytics</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-tertiary: #111111;
+            --bg-elevated: #161616;
+            --accent-white: #ffffff;
+            --accent-silver: #c0c0c0;
+            --accent-gray: #888888;
+            --accent-muted: #444444;
+            --border-subtle: #222222;
+            --accent-hover: #e0e0e0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg-primary);
+            color: var(--accent-white);
+            min-height: 100vh;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        /* Background Pattern */
+        .bg-pattern {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.03;
+            background-image:
+                linear-gradient(45deg, #fff 25%, transparent 25%),
+                linear-gradient(-45deg, #fff 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #fff 75%),
+                linear-gradient(-45deg, transparent 75%, #fff 75%);
+            background-size: 80px 80px;
+            background-position: 0 0, 0 40px, 40px -40px, -40px 0px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 3rem 2rem 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .page-title {
+            font-size: 1.75rem;
+            font-weight: 400;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--accent-white);
+        }
+
+        .result {
+            margin-top: 1.5rem;
+            padding: 1rem 2rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .result-label {
+            font-size: 0.8rem;
+            color: var(--accent-gray);
+            letter-spacing: 0.05em;
+        }
+
+        .best-move {
+            font-size: 1.25rem;
+            color: var(--accent-white);
+            font-weight: 500;
+        }
+
+        /* Main Layout */
+        .main-container {
+            display: flex;
+            justify-content: center;
+            padding: 0 2rem 3rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .content-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5rem;
+            max-width: 1100px;
+            width: 100%;
+            align-items: start;
+        }
+
+        /* Left Side - Chess Board */
+        .left-section {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .description {
+            margin-bottom: 2rem;
+            color: var(--accent-silver);
+            line-height: 1.8;
+        }
+
+        .description p {
+            margin-bottom: 1rem;
+        }
+
+        .description .highlight {
+            color: var(--accent-white);
+        }
+
+        .board-preview {
+            position: relative;
+            max-width: 380px;
+            width: 100%;
+        }
+
+        .board-container {
+            aspect-ratio: 1;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            padding: 0.75rem;
+        }
+
+        .chess-board {
+            width: 100%;
+            height: 100%;
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .square {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(1.25rem, 3vw, 2rem);
+            transition: all 0.2s ease;
+        }
+
+        .square.light {
+            background: #1a1a1a;
+        }
+
+        .square.dark {
+            background: #0a0a0a;
+        }
+
+        /* Right Side - Form */
+        .right-section {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .analysis-form {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            padding: 2rem;
+        }
+
+        .form-title {
+            font-size: 0.9rem;
+            font-weight: 400;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: 2rem;
+            color: var(--accent-gray);
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 400;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+            color: var(--accent-gray);
+        }
+
+        .form-input,
+        .form-select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 0;
+            color: var(--accent-white);
+            font-family: inherit;
+            font-size: 0.9rem;
+            transition: border-color 0.2s ease;
+        }
+
+        .form-input:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: var(--accent-silver);
+        }
+
+        .form-input::placeholder {
+            color: var(--accent-muted);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        /* Castling Section */
+        .castling-section {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .castling-title {
+            font-size: 0.75rem;
+            font-weight: 400;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+            color: var(--accent-gray);
+        }
+
+        .castling-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .castling-group {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            padding: 1rem;
+        }
+
+        .castling-group-title {
+            font-size: 0.7rem;
+            font-weight: 400;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 0.75rem;
+            color: var(--accent-silver);
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .checkbox-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .form-checkbox {
+            width: 14px;
+            height: 14px;
+            accent-color: var(--accent-white);
+            cursor: pointer;
+        }
+
+        .checkbox-label {
+            font-size: 0.8rem;
+            color: var(--accent-gray);
+            cursor: pointer;
+        }
+
+        /* Submit Button */
+        .submit-btn {
+            width: 100%;
+            padding: 1rem 2rem;
+            margin-top: 2rem;
+            background: var(--accent-white);
+            color: var(--bg-primary);
+            border: none;
+            border-radius: 0;
+            font-family: inherit;
+            font-size: 0.8rem;
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .submit-btn:hover {
+            background: var(--accent-silver);
+        }
+
+        /* File Upload */
+        .file-upload-wrapper {
+            position: relative;
+        }
+
+        .file-upload-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-upload-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 1rem;
+            background: var(--bg-tertiary);
+            border: 1px dashed var(--border-subtle);
+            color: var(--accent-gray);
+            font-size: 0.8rem;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .file-upload-wrapper:hover .file-upload-label {
+            border-color: var(--accent-silver);
+            color: var(--accent-white);
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .content-wrapper {
+                grid-template-columns: 1fr;
+                gap: 3rem;
+            }
+
+            .board-preview {
+                max-width: 320px;
+                margin: 0 auto;
+            }
+
+            .page-title {
+                font-size: 1.25rem;
+            }
+
+            .left-section {
+                align-items: center;
+            }
+
+            .description {
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-pattern"></div>
+
+    <header class="header">
+        <h1 class="page-title">Instant AI Powered Position Analysis</h1>
+        <div id="result" class="result" style="display: none;">
+            <span class="result-label">Play the move:</span>
+            <span id="bestMove" class="best-move"></span>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <div class="content-wrapper">
+            <!-- Left Side - Chess Board -->
+            <div class="left-section">
+                <div class="description">
+                    <p>Skip the manual setup. Upload a photo of any chess position and let our AI instantly recognize the board state.</p>
+                    <p>No need to drag pieces or configure complex FEN strings—just <span class="highlight">snap, upload, analyze</span>.</p>
+                </div>
+                <div class="board-preview">
+                    <div class="board-container">
+                        <div class="chess-board">
+                            <div class="square dark">♜</div>
+                            <div class="square light">♞</div>
+                            <div class="square dark">♝</div>
+                            <div class="square light">♛</div>
+                            <div class="square dark">♚</div>
+                            <div class="square light">♝</div>
+                            <div class="square dark">♞</div>
+                            <div class="square light">♜</div>
+                            <div class="square light">♟</div>
+                            <div class="square dark">♟</div>
+                            <div class="square light">♟</div>
+                            <div class="square dark">♟</div>
+                            <div class="square light">♟</div>
+                            <div class="square dark">♟</div>
+                            <div class="square light">♟</div>
+                            <div class="square dark">♟</div>
+                            <div class="square dark"></div>
+                            <div class="square light"></div>
+                            <div class="square dark"></div>
+                            <div class="square light"></div>
+                            <div class="square dark"></div>
+                            <div class="square light"></div>
+                            <div class="square dark"></div>
+                            <div class="square light"></div>
+                            <div class="square light"></div>
+                            <div class="square dark"></div>
+                            <div class="square light"></div>
+                            <div class="square dark"></div>
+                            <div class="square light"></div>
+                            <div class="square dark"></div>
+                            <div class="square light"></div>
+                            <div class="square dark"></div>
+                            <div class="square dark"></div>
+                            <div class="square light"></div>
+                            <div class="square dark"></div>
+                            <div class="square light"></div>
+                            <div class="square dark"></div>
+                            <div class="square light"></div>
+                            <div class="square dark"></div>
+                            <div class="square light"></div>
+                            <div class="square light">♙</div>
+                            <div class="square dark">♙</div>
+                            <div class="square light">♙</div>
+                            <div class="square dark">♙</div>
+                            <div class="square light">♙</div>
+                            <div class="square dark">♙</div>
+                            <div class="square light">♙</div>
+                            <div class="square dark">♙</div>
+                            <div class="square dark">♖</div>
+                            <div class="square light">♘</div>
+                            <div class="square dark">♗</div>
+                            <div class="square light">♕</div>
+                            <div class="square dark">♔</div>
+                            <div class="square light">♗</div>
+                            <div class="square dark">♘</div>
+                            <div class="square light">♖</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side - Form -->
+            <div class="right-section">
+                <form class="analysis-form" action="/analyze" method="POST" enctype="multipart/form-data">
+                    <div class="form-title">Configure Position</div>
+
+                    <!-- Image Upload -->
+                    <div class="form-group">
+                        <label class="form-label">Upload Board Image</label>
+                        <div class="file-upload-wrapper">
+                            <input type="file" id="boardImage" name="boardImage" accept="image/*" class="file-upload-input" onchange="updateFileName(this)">
+                            <label for="boardImage" class="file-upload-label" id="fileLabel">
+                                <span>📷</span> Click to upload chess board image
+                            </label>
+                        </div>
+                        <div id="fileName" class="file-name" style="display: none; margin-top: 0.5rem; font-size: 0.8rem; color: var(--accent-silver);"></div>
+                    </div>
+
+                    <!-- Turn Selection -->
+                    <div class="form-group">
+                        <label class="form-label" for="turn">Turn to Move</label>
+                        <select id="turn" name="turn" class="form-select">
+                            <option value="white">White to move</option>
+                            <option value="black">Black to move</option>
+                        </select>
+                    </div>
+
+                    <!-- Castling Rights -->
+                    <div class="castling-section">
+                        <div class="castling-title">Castling Rights</div>
+                        <div class="castling-grid">
+                            <div class="castling-group">
+                                <div class="castling-group-title">White</div>
+                                <div class="checkbox-row">
+                                    <input type="checkbox" id="whiteKingside" name="whiteKingside" class="form-checkbox">
+                                    <label for="whiteKingside" class="checkbox-label">Kingside (O-O)</label>
+                                </div>
+                                <div class="checkbox-row">
+                                    <input type="checkbox" id="whiteQueenside" name="whiteQueenside" class="form-checkbox">
+                                    <label for="whiteQueenside" class="checkbox-label">Queenside (O-O-O)</label>
+                                </div>
+                            </div>
+                            <div class="castling-group">
+                                <div class="castling-group-title">Black</div>
+                                <div class="checkbox-row">
+                                    <input type="checkbox" id="blackKingside" name="blackKingside" class="form-checkbox">
+                                    <label for="blackKingside" class="checkbox-label">Kingside (O-O)</label>
+                                </div>
+                                <div class="checkbox-row">
+                                    <input type="checkbox" id="blackQueenside" name="blackQueenside" class="form-checkbox">
+                                    <label for="blackQueenside" class="checkbox-label">Queenside (O-O-O)</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Move Counts and En Passant -->
+                    <div class="form-row" style="margin-top: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label" for="moveCount">Move Count</label>
+                            <input type="number" id="moveCount" name="moveCount" class="form-input" placeholder="1" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="halfMoveCount">Half-Move Count</label>
+                            <input type="number" id="halfMoveCount" name="halfMoveCount" class="form-input" placeholder="0" min="0">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="enPassant">En Passant Target</label>
+                        <input type="text" id="enPassant" name="enPassant" class="form-input" placeholder="e.g., e3 (or leave empty)">
+                    </div>
+
+                    <button type="submit" class="submit-btn">Analyze Position</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateFileName(input) {
+            const fileNameDiv = document.getElementById('fileName');
+            const fileLabel = document.getElementById('fileLabel');
+
+            if (input.files && input.files[0]) {
+                fileNameDiv.textContent = 'Selected: ' + input.files[0].name;
+                fileNameDiv.style.display = 'block';
+                fileLabel.innerHTML = '<span>📷</span> Change image';
+            } else {
+                fileNameDiv.style.display = 'none';
+                fileLabel.innerHTML = '<span>📷</span> Click to upload chess board image';
+            }
+        }
+
+        document.querySelector('.analysis-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+            const submitBtn = document.querySelector('.submit-btn');
+            const originalText = submitBtn.textContent;
+
+            submitBtn.textContent = 'Analyzing...';
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.best_move) {
+                    document.getElementById('bestMove').textContent = data.best_move;
+                    document.getElementById('result').style.display = 'inline-flex';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            } finally {
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

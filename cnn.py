@@ -4,17 +4,16 @@ import torch
 import torchvision
 from sklearn.model_selection import train_test_split
 
-transform_func = torchvision.transforms.Compose([
-  torchvision.transforms.ToTensor(),
-  torchvision.transforms.Resize((224, 224)),
-  torchvision.transforms.Grayscale(num_output_channels=1)
-])
-
-dataset = torchvision.datasets.ImageFolder(root = "Final_Dataset", transform = transform_func)
-
-ex_img_tensor, ex_label = dataset.__getitem__(0)
-
 if __name__ == "__main__":
+  transform_func = torchvision.transforms.Compose([
+    torchvision.transforms.ToTensor(),
+    torchvision.transforms.Resize((224, 224)),
+    torchvision.transforms.Grayscale(num_output_channels=1)
+  ])
+
+  dataset = torchvision.datasets.ImageFolder(root = "Final_Dataset", transform = transform_func)
+
+  ex_img_tensor, ex_label = dataset.__getitem__(0)
   print(ex_img_tensor)
   print(f"Height:{len(ex_img_tensor[0])}")
   print(f"Width:{len(ex_img_tensor[0][0])}")

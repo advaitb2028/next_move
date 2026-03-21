@@ -8,6 +8,16 @@ import torch
 import torchvision
 from huggingface_hub import hf_hub_download
 
+model = CNN()
+model_path = hf_hub_download(repo_id="advaitbhowmik/Chess_Piece_Detection", filename="model_weights.pth")
+model.load_state_dict(torch.load(model_path, map_location="cpu"))
+model.eval()
+engine = chess.engine.SimpleEngine.popen_uci("./stockfish/stockfish-ubuntu-x86-64-avx2")
+
+
+
+
+
 @app.route('/')
 def index():
     return render_template("index.html")
@@ -64,11 +74,6 @@ def analyze():
         11: "Q",
         12: "R"
     }
-
-    model = CNN()
-    model_path = hf_hub_download(repo_id="advaitbhowmik/Chess_Piece_Detection", filename="model_weights.pth")
-    model.load_state_dict(torch.load(model_path, map_location="cpu"))
-    model.eval()
 
     transform = torchvision.transforms.Compose([
         torchvision.transforms.ToPILImage(),
@@ -133,15 +138,11 @@ def analyze():
 
     fen += f"{move_count} {half_move_count}"
 
-    engine = chess.engine.SimpleEngine.popen_uci("./stockfish/stockfish-ubuntu-x86-64-avx2")
     board = chess.Board(fen)
-
     info = engine.analyse(board, chess.engine.Limit(time=0.1))
 
     best_move = info["pv"][0]
     print(f"Play {board.san(best_move)}")
-
-    engine.quit()
 
     print("ALL PROCESSES COMPLETED")
 

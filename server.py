@@ -3,7 +3,7 @@ app = Flask(__name__)
 from chessboard_split import get_tiles
 import chess
 import chess.engine
-from cnn import CNN
+from model import CNN
 import torch
 import torchvision
 from huggingface_hub import hf_hub_download
